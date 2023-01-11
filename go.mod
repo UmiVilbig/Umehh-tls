@@ -1,4 +1,4 @@
-module umehh-tls
+module github.com/UmiVilbig/Umehh-tls
 
 go 1.19
 
