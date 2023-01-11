@@ -4,22 +4,21 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/url"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/fatih/color"
 
-	"github.com/Carcraftz/cclient"
 	"github.com/andybalholm/brotli"
 
-	http "github.com/Carcraftz/fhttp"
-	tls "github.com/Carcraftz/utls"
+	"crypto/tls"
+	"net/http"
 )
+
+var chrome_86 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36"
+var chrome_89 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36"
+var chrome_90 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
 
 func log(t string, request RequestData, message string) {
 	if request.Debug == true {
@@ -46,16 +45,16 @@ func log(t string, request RequestData, message string) {
 func ProxyRequest(data []byte) ResponseData {
 
 	var requestData RequestData
-	var allowRedirect = true
-	var timeout = 20
-	var err error
+	// var allowRedirect = true
+	// var timeout = 20
+	// var err error
 
-	if err = json.Unmarshal(data, &requestData); err != nil {
-		return ResponseData{
-			Success: false,
-			Message: "Error: Invalid Request Data",
-		}
-	}
+	// if err = json.Unmarshal(data, &requestData); err != nil {
+	// 	return ResponseData{
+	// 		Success: false,
+	// 		Message: "Error: Invalid Request Data",
+	// 	}
+	// }
 
 	var responseData = ResponseData{
 		ID:     requestData.ID,
@@ -63,141 +62,108 @@ func ProxyRequest(data []byte) ResponseData {
 		URL:    requestData.URL,
 	}
 
-	log("info", requestData, "Starting...")
+	// log("info", requestData, "Starting...")
 
-	if requestData.URL == "" {
-		log("error", requestData, "Missing Request Url")
-		return ResponseData{
-			ID:      requestData.ID,
-			Success: false,
-			Message: "Error: Missing Request Url",
-		}
+	// if requestData.URL == "" {
+	// 	log("error", requestData, "Missing Request Url")
+	// 	return ResponseData{
+	// 		ID:      requestData.ID,
+	// 		Success: false,
+	// 		Message: "Error: Missing Request Url",
+	// 	}
+	// }
+
+	// if requestData.Method == "" {
+	// 	log("error", requestData, "Missing Request Method")
+	// 	return ResponseData{
+	// 		ID:      requestData.ID,
+	// 		Success: false,
+	// 		Message: "Error: Missing Request Method",
+	// 	}
+	// }
+
+	// if len(requestData.Headers) == 0 {
+	// 	log("error", requestData, "Missing Request Headers")
+	// 	return ResponseData{
+	// 		ID:      requestData.ID,
+	// 		Success: false,
+	// 		Message: "Error: Missing Request Headers",
+	// 	}
+	// }
+
+	// if requestData.Headers["User-Agent"] == "" {
+	// 	log("error", requestData, "Missing UserAgent")
+	// 	return ResponseData{
+	// 		ID:      requestData.ID,
+	// 		Success: false,
+	// 		Message: "Error: Missing UserAgent",
+	// 	}
+	// }
+
+	// if requestData.Redirect == false {
+	// 	allowRedirect = false
+	// }
+
+	// if requestData.Timeout != "" {
+	// 	timeout, err = strconv.Atoi(requestData.Timeout)
+	// 	if err != nil {
+	// 		timeout = 20
+	// 	}
+	// }
+
+	// if timeout > 60 {
+	// 	log("error", requestData, "Timeout Cannot Be Longer Than 60 Seconds")
+	// 	return ResponseData{
+	// 		ID:      requestData.ID,
+	// 		Success: false,
+	// 		Message: "Error: Timeout Cannot Be Longer Than 60 Seconds",
+	// 	}
+	// }
+
+	// var tlsClient tls.ClientHelloID
+
+	// if strings.Contains(strings.ToLower(requestData.Headers["User-Agent"]), "chrome") {
+	// 	tlsClient = tls.HelloChrome_Auto
+	// } else if strings.Contains(strings.ToLower(requestData.Headers["User-Agent"]), "firefox") {
+	// 	tlsClient = tls.HelloFirefox_Auto
+	// } else {
+	// 	tlsClient = tls.HelloIOS_Auto
+	// }
+
+	// client, err := cclient.NewClient(tlsClient, requestData.Proxy, allowRedirect, time.Duration(timeout))
+
+	client := &http.Client{}
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			// NextProtos: []string{"h2"},
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_AES_128_GCM_SHA256,
+				tls.TLS_AES_256_GCM_SHA384,
+			},
+			MinVersion: tls.VersionTLS12,
+			MaxVersion: tls.VersionTLS13,
+		},
 	}
 
-	if requestData.Method == "" {
-		log("error", requestData, "Missing Request Method")
-		return ResponseData{
-			ID:      requestData.ID,
-			Success: false,
-			Message: "Error: Missing Request Method",
-		}
-	}
-
-	if len(requestData.Headers) == 0 {
-		log("error", requestData, "Missing Request Headers")
-		return ResponseData{
-			ID:      requestData.ID,
-			Success: false,
-			Message: "Error: Missing Request Headers",
-		}
-	}
-
-	if requestData.Headers["User-Agent"] == "" {
-		log("error", requestData, "Missing UserAgent")
-		return ResponseData{
-			ID:      requestData.ID,
-			Success: false,
-			Message: "Error: Missing UserAgent",
-		}
-	}
-
-	if requestData.Redirect == false {
-		allowRedirect = false
-	}
-
-	if requestData.Timeout != "" {
-		timeout, err = strconv.Atoi(requestData.Timeout)
-		if err != nil {
-			timeout = 20
-		}
-	}
-
-	if timeout > 60 {
-		log("error", requestData, "Timeout Cannot Be Longer Than 60 Seconds")
-		return ResponseData{
-			ID:      requestData.ID,
-			Success: false,
-			Message: "Error: Timeout Cannot Be Longer Than 60 Seconds",
-		}
-	}
-
-	var tlsClient tls.ClientHelloID
-
-	if strings.Contains(strings.ToLower(requestData.Headers["User-Agent"]), "chrome") {
-		tlsClient = tls.HelloChrome_Auto
-	} else if strings.Contains(strings.ToLower(requestData.Headers["User-Agent"]), "firefox") {
-		tlsClient = tls.HelloFirefox_Auto
-	} else {
-		tlsClient = tls.HelloIOS_Auto
-	}
-
-	client, err := cclient.NewClient(tlsClient, requestData.Proxy, allowRedirect, time.Duration(timeout))
-
-	if err != nil {
-		log("error", requestData, "Failed To Initiate Request")
-		return ResponseData{
-			ID:      requestData.ID,
-			Success: false,
-			Message: "Error: Failed To Initiate Request",
-		}
-	}
+	client.Transport = tr
 
 	var req *http.Request
 
-	req, err = http.NewRequest(requestData.Method, requestData.URL, bytes.NewBuffer([]byte(requestData.Body)))
+	// req, err = http.NewRequest(requestData.Method, requestData.URL, bytes.NewBuffer([]byte(requestData.Body)))
+	req, _ = http.NewRequest(requestData.Method, requestData.URL, nil)
 
-	if err != nil {
-		log("error", requestData, "Failed To Execute Request")
-		return ResponseData{
-			ID:      requestData.ID,
-			Success: false,
-			Message: "Error: Failed To Execute Request",
-		}
-	}
+	req.Header.Set("User-Agent", chrome_90)
 
-	headermap := make(map[string]string)
-
-	headerorderkey := []string{}
-
-	for _, key := range Masterheaderorder {
-		for k, v := range requestData.Headers {
-			lowercasekey := strings.ToLower(k)
-			if key == lowercasekey {
-				headermap[k] = v
-				headerorderkey = append(headerorderkey, lowercasekey)
-			}
-		}
-	}
-
-	req.Header = http.Header{
-		http.HeaderOrderKey:  headerorderkey,
-		http.PHeaderOrderKey: {":method", ":authority", ":scheme", ":path"},
-	}
-
-	for k, v := range req.Header {
-		if _, ok := headermap[k]; !ok {
-			headermap[k] = v[0]
-			headerorderkey = append(headerorderkey, strings.ToLower(k))
-		}
-	}
-
-	for k, v := range requestData.Headers {
-		if k != "Content-Length" && !strings.Contains(k, "Poptls") {
-			req.Header.Set(k, v)
-		}
-	}
-
-	u, err := url.Parse(requestData.URL)
-	if err != nil {
-		log("error", requestData, "Failed To Get Host")
-		return ResponseData{
-			ID:      requestData.ID,
-			Success: false,
-			Message: "Error: Failed To Get Host",
-		}
-	}
-
-	req.Header.Set("Host", u.Host)
+	// Set the Accept headers
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 
 	resp, err := client.Do(req)
 
