@@ -12,7 +12,7 @@ import (
 
 	"github.com/fatih/color"
 
-	proxy "github.com/UmiVilbig/umehh-tls/proxy"
+	proxy "github.com/UmiVilbig/Umehh-tls/proxy"
 	"github.com/gorilla/websocket"
 )
 
